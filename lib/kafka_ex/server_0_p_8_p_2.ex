@@ -15,6 +15,7 @@ defmodule KafkaEx.Server0P8P2 do
   ]
 
   use KafkaEx.Server
+  alias KafkaEx.Config
   alias KafkaEx.ConsumerGroupRequiredError
   alias KafkaEx.InvalidConsumerGroupError
   alias KafkaEx.Protocol.ConsumerMetadata
@@ -27,6 +28,26 @@ defmodule KafkaEx.Server0P8P2 do
   alias KafkaEx.NetworkClient
 
   @consumer_group_update_interval 30_000
+
+  if Config.use_v1_offsets() do
+    defp create_commit_request(topic, offset, partition, consumer_group) do
+      %KafkaEx.Protocol.OffsetCommit.V1.Request{
+        topic:          topic,
+        offset:         offset,
+        partition:      partition,
+        consumer_group: consumer_group
+      }
+    end
+  else
+    defp create_commit_request(topic, offset, partition, consumer_group) do
+      %OffsetCommit.Request{
+        topic:          topic,
+        offset:         offset,
+        partition:      partition,
+        consumer_group: consumer_group
+      }
+    end
+  end
 
   def start_link(args, name \\ __MODULE__)
 
@@ -265,12 +286,12 @@ defmodule KafkaEx.Server0P8P2 do
           response |> hd |> Map.get(:partitions) |> hd |> Map.get(:last_offset)
 
         if last_offset != nil && request.auto_commit do
-          offset_commit_request = %OffsetCommit.Request{
-            topic: request.topic,
-            offset: last_offset,
-            partition: request.partition,
-            consumer_group: state_out.consumer_group
-          }
+          offset_commit_request = create_commit_request(
+            request.topic,
+            last_offset,
+            request.partition,
+            state_out.consumer_group
+          )
 
           {_, state} = offset_commit(state_out, offset_commit_request)
           {response, state}

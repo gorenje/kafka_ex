@@ -50,6 +50,23 @@ defmodule KafkaEx.Config do
     |> brokers()
   end
 
+  defp version_ok?(:lt), do: true
+  defp version_ok?(:eq), do: true
+  defp version_ok?(_), do: false
+
+  defp should_use_v1?(true) do
+    version_ok?(Version.compare(
+          "0.9.0",
+          Application.get_env(:kafka_ex, :kafka_version, :defaut)
+        )
+    )
+  end
+  defp should_use_v1?(_), do: false
+
+  def use_v1_offsets() do
+    should_use_v1?(Application.get_env(:kafka_ex, :use_v1_offsets, false))
+  end
+
   defp brokers(nil),
     do: nil
 

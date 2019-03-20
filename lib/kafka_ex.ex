@@ -44,6 +44,24 @@ defmodule KafkaEx do
           | {:consumer_group_update_interval, non_neg_integer}
           | {:ssl_options, ssl_options}
 
+  if Config.use_v1_offsets() do
+    defp create_offset_request(topic, partition, consumer_group \\ nil) do
+      %KafkaEx.Protocol.OffsetFetch.V1.Request{
+        topic:          topic,
+        partition:      partition,
+        consumer_group: consumer_group
+      }
+    end
+  else
+    defp create_offset_request(topic, partition, consumer_group \\ nil) do
+      %OffsetFetchRequest{
+        topic:          topic,
+        partition:      partition,
+        consumer_group: consumer_group
+      }
+    end
+  end
+
   @doc """
   create_worker creates KafkaEx workers
 
@@ -502,11 +520,7 @@ defmodule KafkaEx do
 
     retrieved_offset =
       if consumer_group && !supplied_offset do
-        request = %OffsetFetchRequest{
-          topic: topic,
-          partition: partition,
-          consumer_group: consumer_group
-        }
+        request = create_offset_request(topic, partition, consumer_group)
 
         fetched_offset =
           worker_name
@@ -571,10 +585,7 @@ defmodule KafkaEx do
       nil ->
         last_offset =
           worker_name
-          |> offset_fetch(%OffsetFetchRequest{
-            topic: topic,
-            partition: partition
-          })
+          |> offset_fetch(create_offset_request(topic, partition))
           |> OffsetFetchResponse.last_offset()
 
         if last_offset < 0 do

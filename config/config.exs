@@ -65,7 +65,8 @@ config :kafka_ex,
   # include only major.minor.patch versions.  must be at least 0.8.0
   kafka_version: "0.10.1",
   # Support version one of the OffsetCommit and Fetch. This implies storing
-  # offsets to Kafka and not Zookeeper.
+  # offsets to Kafka and not Zookeeper. This requires Kafka version 0.9 or
+  # higher. See https://stackoverflow.com/a/41150833 for more details.
   use_v1_offsets: false
 
 env_config = Path.expand("#{Mix.env()}.exs", __DIR__)
